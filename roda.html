@@ -61,9 +61,7 @@
         .speed-control {
             display: flex;
             align-items: center;
-            gap: 15px;
             background: rgba(255,255,255,0.1);
-            padding: 15px 25px;
             border-radius: 20px;
             backdrop-filter: blur(10px);
         }
@@ -168,7 +166,7 @@
             max-width: 600px;
             margin-top: 40px;
             background: rgba(255,255,255,0.1);
-            padding: 25px;
+            padding: 10px;
             border-radius: 20px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
@@ -185,8 +183,10 @@
 
         .item-form {
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
-            margin-bottom: 20px;
+            margin: 0 auto 20px; /* Centraliza e mantém a margem inferior */
+            max-width: 450px;    /* Restringe a largura máxima */
         }
 
         .item-form input {
