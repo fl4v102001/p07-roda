@@ -257,6 +257,7 @@
             color: #ff4757;
         }
     </style>
+    <style id="animation-style"></style>
 </head>
 <body>
     <div class="container">
@@ -268,7 +269,7 @@
 
         <div class="wheel-container">
             <div class="pointer"></div>
-            <svg id="wheelSVG" width="550" height="550" viewBox="0 0 550 550" style="border-radius:50%; border:8px solid #2f3542; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible; transition: transform 20s cubic-bezier(0.17, 0.67, 0.12, 0.99);">
+            <svg id="wheelSVG" width="550" height="550" viewBox="0 0 550 550" style="border-radius:50%; border:8px solid #2f3542; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible;">
                 <!-- Fatias serão desenhadas via JS -->
             </svg>
         </div>
@@ -319,12 +320,12 @@
         // Definindo os tamanhos das 19 fatias (em graus) - total deve ser 360
         // ETAPA 1: Nova estrutura de dados
         let items = [
-            { name: 'Prêmio A', quantity: 10, color: '#ff6b6b' },
-            { name: 'Prêmio B', quantity: 20, color: '#4ecdc4' },
-            { name: 'Tente Novamente', quantity: 5, color: '#45b7d1' },
-            { name: 'Prêmio C', quantity: 15, color: '#feca57' },
-            { name: 'Vale 50', quantity: 30, color: '#ff9ff3' },
-            { name: 'Vale 100', quantity: 10, color: '#54a0ff' },
+            { name: 'Alex', quantity: 10, color: '#ff6b6b' },
+            { name: 'Ariel', quantity: 20, color: '#4ecdc4' },
+            { name: 'Cris', quantity: 5, color: '#45b7d1' },
+            { name: 'Luan', quantity: 15, color: '#feca57' },
+            { name: 'Andrea', quantity: 30, color: '#ff9ff3' },
+            { name: 'Fran', quantity: 10, color: '#54a0ff' },
         ];
 
         let isSpinning = false;
@@ -334,12 +335,6 @@
         function updateSpeed(value) {
             spinDuration = parseFloat(value);
             document.getElementById('speedValue').textContent = value + 's';
-            
-            // Atualizar a transição CSS da roda se não estiver girando
-            if (!isSpinning) {
-                const wheelSVG = document.getElementById('wheelSVG');
-                wheelSVG.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
-            }
         }
 
         function createWheel() {
@@ -383,54 +378,77 @@
             const spinButton = document.querySelector('.spin-button');
             const result = document.getElementById('result');
             const wheelSVG = document.getElementById('wheelSVG');
-            // Atualizar a transição com a duração atual
-            wheelSVG.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
+            const animationStyle = document.getElementById('animation-style');
+
             spinButton.disabled = true;
             spinButton.textContent = 'GIRANDO...';
             result.textContent = 'Girando...';
-            // Gerar rotação aleatória (múltiplas voltas + ângulo final)
-            const minSpins = 5;
-            const maxSpins = 8;
+
+            // Calcula minSpins proporcionalmente à duração do giro.
+            // Para 5s -> 5 voltas; Para 60s -> 20 voltas.
+            const minSpins = Math.round((3 / 11) * spinDuration + (40 / 11));
+            const maxSpins = minSpins + 2;
             const spins = Math.random() * (maxSpins - minSpins) + minSpins;
             const finalAngle = Math.random() * 360;
-            // Sempre adicionar rotação positiva para garantir sentido horário
+
+            const initialRotation = currentRotation;
             const additionalRotation = (spins * 360) + finalAngle;
-            currentRotation += additionalRotation;
-            wheelSVG.style.transform = `rotate(${currentRotation}deg)`;
-            // Para o cálculo do resultado, usar apenas a posição final normalizada
-            const finalPosition = currentRotation % 360;
-            // Inicia a atualização do texto durante o giro
-            requestAnimationFrame(updateResultDuringSpin);
-            // Calcular qual número foi selecionado
-            setTimeout(() => {
+            const finalRotation = initialRotation + additionalRotation;
+
+            const keyframes = `
+                @keyframes spinAnimation {
+                    from {
+                        transform: rotate(${initialRotation}deg);
+                    }
+                    to {
+                        transform: rotate(${finalRotation}deg);
+                    }
+                }
+            `;
+            animationStyle.innerHTML = keyframes;
+            // Mantém apenas a cubic-bezier para controlar a velocidade:
+            // Esta curva mantém velocidade máxima até ~80% e desacelera nos 20% finais
+            wheelSVG.style.animation = `spinAnimation ${spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
+            
+            currentRotation = finalRotation; // Atualiza a rotação para o próximo giro
+
+            requestAnimationFrame(updateResultDuranteSpin);
+
+            wheelSVG.addEventListener('animationend', () => {
                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                 if (totalQuantity === 0) {
                     result.textContent = 'Roda vazia!';
-                    spinButton.disabled = false;
-                    spinButton.textContent = 'GIRAR RODA';
-                    isSpinning = false;
-                    return;
                 }
-                // CORREÇÃO: Ajusta o ângulo para a posição do ponteiro (270 graus)
-                const normalizedAngle = (270 - (finalPosition % 360) + 360) % 360;
-                let winner = null;
-                let cumulativeAngle = 0;
-                for (const item of items) {
-                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
-                    cumulativeAngle += sliceSizeInDegrees;
-                    if (normalizedAngle < cumulativeAngle) {
-                        winner = item;
-                        break;
+                else {
+                    const finalPosition = finalRotation % 360;
+                    const normalizedAngle = (270 - (finalPosition % 360) + 360) % 360;
+                    let winner = null;
+                    let cumulativeAngle = 0;
+                    for (const item of items) {
+                        const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                        cumulativeAngle += sliceSizeInDegrees;
+                        if (normalizedAngle < cumulativeAngle) {
+                            winner = item;
+                            break;
+                        }
                     }
+                    result.innerHTML = `🎉 Resultado: <strong>${winner ? winner.name : 'Nenhum'}</strong>`;
                 }
-                result.innerHTML = `🎉 Resultado: <strong>${winner ? winner.name : 'Nenhum'}</strong>`;
+
                 spinButton.disabled = false;
                 spinButton.textContent = 'GIRAR NOVAMENTE';
                 isSpinning = false;
-            }, spinDuration * 1000);
+
+                // Limpa a animação para o próximo giro
+                // ...dentro do wheelSVG.addEventListener('animationend', ...)...
+                wheelSVG.style.transform = `rotate(${finalRotation}deg)`;
+                wheelSVG.style.animation = '';
+                animationStyle.innerHTML = '';
+                // ...restante do código...
+            }, { once: true });
         }
 
-        function updateResultDuringSpin() {
+        function updateResultDuranteSpin() {
             if (!isSpinning) return;
             const wheelSVG = document.getElementById('wheelSVG');
             const result = document.getElementById('result');
@@ -459,7 +477,7 @@
                 }
             }
             result.innerHTML = `Girando... <strong>${currentItem ? currentItem.name : ''}</strong>`;
-            requestAnimationFrame(updateResultDuringSpin);
+            requestAnimationFrame(updateResultDuranteSpin);
         }
 
         function saveItemsToSession() {
@@ -547,7 +565,7 @@
             document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
             document.getElementById('itemsTableBody').addEventListener('click', handleTableClick);
             renderApp();
-            updateSpeed(20);
+            updateSpeed(document.getElementById('speedSlider').value);
         });
     </script>
 </body>
