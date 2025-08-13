@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roda de Sorteio</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 550px;
+            height: 550px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 28px solid transparent;
+            border-right: 28px solid transparent;
+            border-top: 55px solid #ff4757;
+            z-index: 10;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .wheel {
+            width: 550px;
+            height: 550px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 8px solid #2f3542;
+            transition: transform 20s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel.spinning {
+            transform: rotate(1800deg);
+        }
+
+        .slice {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .speed-label {
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            min-width: 120px;
+        }
+
+        .speed-slider {
+            width: 200px;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .speed-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .speed-value {
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .spin-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .spin-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .spin-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .title {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Estilos para o Gerenciador de Itens */
+        .item-manager {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 40px;
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .manager-title {
+            color: white;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .item-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .item-form input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .item-form input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .item-form input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .item-form button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .item-form button:hover {
+            background: #ee5a24;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        .items-table th, .items-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .items-table th {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .items-table td {
+            font-size: 14px;
+        }
+
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #ff7979;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            color: #ff4757;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎯 Roda de Sorteio</h1>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <svg id="wheelSVG" width="550" height="550" viewBox="0 0 550 550" style="border-radius:50%; border:8px solid #2f3542; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible; transition: transform 20s cubic-bezier(0.17, 0.67, 0.12, 0.99);">
+                <!-- Fatias serão desenhadas via JS -->
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="speed-control">
+                <label class="speed-label">Velocidade:</label>
+                <input 
+                    type="range" 
+                    id="speedSlider" 
+                    class="speed-slider"
+                    min="5" 
+                    max="60" 
+                    value="20" 
+                    step="5"
+                    oninput="updateSpeed(this.value)"
+                >
+                <span class="speed-value" id="speedValue">20s</span>
+            </div>
+            <button class="spin-button" onclick="spinWheel()">GIRAR RODA</button>
+        </div>
+
+        <div class="result" id="result">
+            Clique em "GIRAR RODA" para começar!
+        </div>
+    </div>
+
+    <div class="item-manager">
+        <h2 class="manager-title">Gerenciar Itens</h2>
+        <form id="addItemForm" class="item-form">
+            <input type="text" id="itemName" placeholder="Nome do Item" required>
+            <input type="number" id="itemQuantity" placeholder="Quantidade (Peso)" min="1" value="10" required>
+            <button type="submit">Adicionar Item</button>
+        </form>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Quantidade</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="itemsTableBody">
+                <!-- Itens serão adicionados aqui via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Definindo os tamanhos das 19 fatias (em graus) - total deve ser 360
+        // ETAPA 1: Nova estrutura de dados
+        let items = [
+            { name: 'Prêmio A', quantity: 10, color: '#ff6b6b' },
+            { name: 'Prêmio B', quantity: 20, color: '#4ecdc4' },
+            { name: 'Tente Novamente', quantity: 5, color: '#45b7d1' },
+            { name: 'Prêmio C', quantity: 15, color: '#feca57' },
+            { name: 'Vale 50', quantity: 30, color: '#ff9ff3' },
+            { name: 'Vale 100', quantity: 10, color: '#54a0ff' },
+        ];
+
+        let isSpinning = false;
+        let currentRotation = 0;
+        let spinDuration = 20; // Duração padrão em segundos
+
+        function updateSpeed(value) {
+            spinDuration = parseFloat(value);
+            document.getElementById('speedValue').textContent = value + 's';
+            
+            // Atualizar a transição CSS da roda se não estiver girando
+            if (!isSpinning) {
+                const wheel = document.getElementById('wheel');
+                wheel.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
+            }
+        }
+
+        function createWheel() {
+            const svg = document.getElementById('wheelSVG');
+            svg.innerHTML = '';
+            const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+            if (totalQuantity === 0) {
+                document.querySelector('.spin-button').disabled = true;
+                return;
+            }
+            const cx = 275, cy = 275, r = 265;
+            let currentAngle = 0;
+            items.forEach(item => {
+                const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                const startAngle = currentAngle;
+                const endAngle = currentAngle + sliceSizeInDegrees;
+                const startRad = (Math.PI / 180) * startAngle;
+                const endRad = (Math.PI / 180) * endAngle;
+                const x1 = cx + r * Math.cos(startRad);
+                const y1 = cy + r * Math.sin(startRad);
+                const x2 = cx + r * Math.cos(endRad);
+                const y2 = cy + r * Math.sin(endRad);
+                const largeArcFlag = sliceSizeInDegrees > 180 ? 1 : 0;
+                const pathData = [
+                    `M ${cx} ${cy}`,
+                    `L ${x1} ${y1}`,
+                    `A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                    'Z'
+                ].join(' ');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', item.color);
+                svg.appendChild(path);
+                currentAngle += sliceSizeInDegrees;
+            });
+        }
+
+        function spinWheel() {
+            if (isSpinning || items.length === 0) return;
+            isSpinning = true;
+            const spinButton = document.querySelector('.spin-button');
+            const result = document.getElementById('result');
+            const wheelSVG = document.getElementById('wheelSVG');
+            // Atualizar a transição com a duração atual
+            wheelSVG.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
+            spinButton.disabled = true;
+            spinButton.textContent = 'GIRANDO...';
+            result.textContent = 'Girando...';
+            // Gerar rotação aleatória (múltiplas voltas + ângulo final)
+            const minSpins = 5;
+            const maxSpins = 8;
+            const spins = Math.random() * (maxSpins - minSpins) + minSpins;
+            const finalAngle = Math.random() * 360;
+            // Sempre adicionar rotação positiva para garantir sentido horário
+            const additionalRotation = (spins * 360) + finalAngle;
+            currentRotation += additionalRotation;
+            wheelSVG.style.transform = `rotate(${currentRotation}deg)`;
+            // Para o cálculo do resultado, usar apenas a posição final normalizada
+            const finalPosition = currentRotation % 360;
+            // Inicia a atualização do texto durante o giro
+            requestAnimationFrame(updateResultDuringSpin);
+            // Calcular qual número foi selecionado
+            setTimeout(() => {
+                const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+                if (totalQuantity === 0) {
+                    result.textContent = 'Roda vazia!';
+                    spinButton.disabled = false;
+                    spinButton.textContent = 'GIRAR RODA';
+                    isSpinning = false;
+                    return;
+                }
+                // CORREÇÃO: Ajusta o ângulo para a posição do ponteiro (270 graus)
+                const normalizedAngle = (270 - (finalPosition % 360) + 360) % 360;
+                let winner = null;
+                let cumulativeAngle = 0;
+                for (const item of items) {
+                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                    cumulativeAngle += sliceSizeInDegrees;
+                    if (normalizedAngle < cumulativeAngle) {
+                        winner = item;
+                        break;
+                    }
+                }
+                result.innerHTML = `🎉 Resultado: <strong>${winner ? winner.name : 'Nenhum'}</strong>`;
+                spinButton.disabled = false;
+                spinButton.textContent = 'GIRAR NOVAMENTE';
+                isSpinning = false;
+            }, spinDuration * 1000);
+        }
+
+        function updateResultDuringSpin() {
+            if (!isSpinning) return;
+            const wheelSVG = document.getElementById('wheelSVG');
+            const result = document.getElementById('result');
+            // Pega a rotação atual da matriz de transformação do CSS
+            const transformMatrix = window.getComputedStyle(wheelSVG).transform;
+            let currentAngle = 0;
+            if (transformMatrix !== 'none') {
+                const values = transformMatrix.split('(')[1].split(')')[0].split(',');
+                const a = parseFloat(values[0]);
+                const b = parseFloat(values[1]);
+                currentAngle = Math.atan2(b, a) * (180 / Math.PI);
+            }
+            // CORREÇÃO: Ajusta o ângulo para a posição do ponteiro (270 graus)
+            const normalizedAngle = (270 - (currentAngle % 360) + 360) % 360;
+            const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+            let currentItem = null;
+            let cumulativeAngle = 0;
+            if (totalQuantity > 0) {
+                for (const item of items) {
+                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                    cumulativeAngle += sliceSizeInDegrees;
+                    if (normalizedAngle < cumulativeAngle) {
+                        currentItem = item;
+                        break;
+                    }
+                }
+            }
+            result.innerHTML = `Girando... <strong>${currentItem ? currentItem.name : ''}</strong>`;
+            requestAnimationFrame(updateResultDuringSpin);
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('itemsTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                        <button class="remove-btn" data-index="${index}">&times;</button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function getRandomColor() {
+            const palette = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24', '#0abde3', '#7bed9f', '#2e86de', '#a55eea', '#26de81', '#fc5c65', '#fd79a8'];
+            const usedColors = items.map(item => item.color);
+            const availableColors = palette.filter(color => !usedColors.includes(color));
+            
+            if (availableColors.length > 0) {
+                return availableColors[Math.floor(Math.random() * availableColors.length)];
+            }
+            // Fallback to a completely random color if palette is exhausted
+            return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        }
+
+        function renderApp() {
+            createWheel();
+            renderTable();
+            document.querySelector('.spin-button').disabled = items.length === 0;
+        }
+
+        function handleAddItem(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('itemName');
+            const quantityInput = document.getElementById('itemQuantity');
+
+            const name = nameInput.value.trim();
+            const quantity = parseInt(quantityInput.value, 10);
+
+            if (name && quantity > 0) {
+                items.push({ name, quantity, color: getRandomColor() });
+                nameInput.value = '';
+                quantityInput.value = '10';
+                nameInput.focus();
+                renderApp();
+            }
+        }
+
+        function handleTableClick(event) {
+            if (event.target.classList.contains('remove-btn')) {
+                const index = parseInt(event.target.dataset.index, 10);
+                items.splice(index, 1);
+                renderApp();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
+            document.getElementById('itemsTableBody').addEventListener('click', handleTableClick);
+            renderApp();
+            updateSpeed(20);
+        });
+    </script>
+</body>
+</html>
