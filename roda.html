@@ -45,29 +45,6 @@
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
         }
 
-        .wheel {
-            width: 550px;
-            height: 550px;
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border: 8px solid #2f3542;
-            transition: transform 20s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-        }
-
-        .wheel.spinning {
-            transform: rotate(1800deg);
-        }
-
-        .slice {
-            position: absolute;
-            width: 50%;
-            height: 50%;
-            transform-origin: 100% 100%;
-            box-sizing: border-box;
-        }
-
         .controls {
             display: flex;
             flex-direction: column;
@@ -284,7 +261,11 @@
 <body>
     <div class="container">
         <h1 class="title">🎯 Roda de Sorteio</h1>
-        
+
+        <div class="result" id="result">
+            Clique em "GIRAR RODA" para começar!
+        </div>        
+
         <div class="wheel-container">
             <div class="pointer"></div>
             <svg id="wheelSVG" width="550" height="550" viewBox="0 0 550 550" style="border-radius:50%; border:8px solid #2f3542; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible; transition: transform 20s cubic-bezier(0.17, 0.67, 0.12, 0.99);">
@@ -293,6 +274,7 @@
         </div>
 
         <div class="controls">
+            <button class="spin-button" onclick="spinWheel()">GIRAR RODA</button>
             <div class="speed-control">
                 <label class="speed-label">Velocidade:</label>
                 <input 
@@ -307,20 +289,17 @@
                 >
                 <span class="speed-value" id="speedValue">20s</span>
             </div>
-            <button class="spin-button" onclick="spinWheel()">GIRAR RODA</button>
         </div>
 
-        <div class="result" id="result">
-            Clique em "GIRAR RODA" para começar!
-        </div>
+
     </div>
 
     <div class="item-manager">
-        <h2 class="manager-title">Gerenciar Itens</h2>
+        <h2 class="manager-title">Gerenciar Sorteio</h2>
         <form id="addItemForm" class="item-form">
-            <input type="text" id="itemName" placeholder="Nome do Item" required>
-            <input type="number" id="itemQuantity" placeholder="Quantidade (Peso)" min="1" value="10" required>
-            <button type="submit">Adicionar Item</button>
+            <input type="text" id="itemName" placeholder="Nome" required>
+            <input type="number" id="itemQuantity" placeholder="Quantidade" min="1" value="1" required>
+            <button type="submit">Adicionar</button>
         </form>
         <table class="items-table">
             <thead>
@@ -358,8 +337,8 @@
             
             // Atualizar a transição CSS da roda se não estiver girando
             if (!isSpinning) {
-                const wheel = document.getElementById('wheel');
-                wheel.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
+                const wheelSVG = document.getElementById('wheelSVG');
+                wheelSVG.style.transition = `transform ${spinDuration}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
             }
         }
 
@@ -483,6 +462,10 @@
             requestAnimationFrame(updateResultDuringSpin);
         }
 
+        function saveItemsToSession() {
+            sessionStorage.setItem('rouletteItems', JSON.stringify(items));
+        }
+
         function renderTable() {
             const tableBody = document.getElementById('itemsTableBody');
             tableBody.innerHTML = ''; // Clear existing rows
@@ -534,6 +517,7 @@
                 quantityInput.value = '10';
                 nameInput.focus();
                 renderApp();
+                saveItemsToSession();
             }
         }
 
@@ -542,10 +526,24 @@
                 const index = parseInt(event.target.dataset.index, 10);
                 items.splice(index, 1);
                 renderApp();
+                saveItemsToSession();
             }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const savedItems = sessionStorage.getItem('rouletteItems');
+            if (savedItems) {
+                try {
+                    const parsedItems = JSON.parse(savedItems);
+                    if (Array.isArray(parsedItems)) {
+                        items = parsedItems;
+                    }
+                } catch (e) {
+                    console.error("Erro ao carregar itens da sessão:", e);
+                    // Mantém os itens padrão se houver erro
+                }
+            }
+
             document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
             document.getElementById('itemsTableBody').addEventListener('click', handleTableClick);
             renderApp();
