@@ -27,22 +27,28 @@
 
         .wheel-container {
             position: relative;
-            width: 550px;
-            height: 550px;
+            width: 100%;
+            max-width: 550px;
+            aspect-ratio: 1 / 1; /* Mantém o contêiner quadrado */
         }
 
         .pointer {
             position: absolute;
-            top: -28px;
+            top: -5.1%; /* -28px / 550px */
             left: 50%;
             transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 28px solid transparent;
-            border-right: 28px solid transparent;
-            border-top: 55px solid #ff4757;
+            width: 10.2%; /* ~56px / 550px */
+            height: 10%;  /*  55px / 550px */
+            background: #ff4757;
+            /* Cria um triângulo de forma responsiva e robusta */
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
             z-index: 10;
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+
+        #wheelSVG {
+            width: 100%;
+            height: 100%;
         }
 
         .controls {
@@ -269,7 +275,7 @@
 
         <div class="wheel-container">
             <div class="pointer"></div>
-            <svg id="wheelSVG" width="550" height="550" viewBox="0 0 550 550" style="border-radius:50%; border:8px solid #2f3542; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible;">
+            <svg id="wheelSVG" viewBox="0 0 550 550" style="border-radius:50%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow:visible;">
                 <!-- Fatias serão desenhadas via JS -->
             </svg>
         </div>
@@ -340,12 +346,23 @@
         function createWheel() {
             const svg = document.getElementById('wheelSVG');
             svg.innerHTML = '';
+
+            // Desenha um círculo de borda para um visual consistente
+            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            borderCircle.setAttribute('cx', '275');
+            borderCircle.setAttribute('cy', '275');
+            borderCircle.setAttribute('r', '271'); // Raio do viewBox/2 - largura da borda/2
+            borderCircle.setAttribute('fill', 'none');
+            borderCircle.setAttribute('stroke', '#2f3542');
+            borderCircle.setAttribute('stroke-width', '8');
+            svg.appendChild(borderCircle);
+
             const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
             if (totalQuantity === 0) {
                 document.querySelector('.spin-button').disabled = true;
                 return;
             }
-            const cx = 275, cy = 275, r = 265;
+            const cx = 275, cy = 275, r = 267; // Raio das fatias para caber dentro da borda
             let currentAngle = 0;
             items.forEach(item => {
                 const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
