@@ -112,6 +112,31 @@
             text-align: center;
         }
 
+        .checkbox-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* Estilos para consistência visual com o controle de velocidade */
+            background: rgba(255,255,255,0.1);
+            padding: 4px 4px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .checkbox-label {
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            user-select: none; /* Impede a seleção de texto no label */
+        }
+
+        #showLinesCheckbox {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
         .spin-button {
             padding: 15px 30px;
             font-size: 18px;
@@ -296,6 +321,10 @@
                 >
                 <span class="speed-value" id="speedValue">20s</span>
             </div>
+            <div class="checkbox-control">
+                <input type="checkbox" id="showLinesCheckbox" checked>
+                <label for="showLinesCheckbox" class="checkbox-label">Mostrar linhas</label>
+            </div>
         </div>
 
 
@@ -337,6 +366,7 @@
         let isSpinning = false;
         let currentRotation = 0;
         let spinDuration = 20; // Duração padrão em segundos
+        let showSubdivisionLines = true; // Controla a visibilidade das linhas
 
         function updateSpeed(value) {
             spinDuration = parseFloat(value);
@@ -387,24 +417,26 @@
                 svg.appendChild(path);
                 currentAngle += sliceSizeInDegrees;
             });
-                        // Adiciona as linhas de subdivisão para cada unidade de "quantidade"
-            const anglePerUnit = 360 / totalQuantity;
-            for (let i = 1; i <= totalQuantity; i++) {
-                const lineAngle = i * anglePerUnit;
-                const lineRad = (Math.PI / 180) * lineAngle;
+            // Adiciona as linhas de subdivisão para cada unidade de "quantidade"
+            if (showSubdivisionLines) {
+                const anglePerUnit = 360 / totalQuantity;
+                for (let i = 1; i <= totalQuantity; i++) {
+                    const lineAngle = i * anglePerUnit;
+                    const lineRad = (Math.PI / 180) * lineAngle;
 
-                const x2 = cx + r * Math.cos(lineRad);
-                const y2 = cy + r * Math.sin(lineRad);
+                    const x2 = cx + r * Math.cos(lineRad);
+                    const y2 = cy + r * Math.sin(lineRad);
 
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', String(cx));
-                line.setAttribute('y1', String(cy));
-                line.setAttribute('x2', String(x2));
-                line.setAttribute('y2', String(y2));
-                // Estilo sutil para as linhas
-                line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
-                line.setAttribute('stroke-width', '1');
-                svg.appendChild(line);
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', String(cx));
+                    line.setAttribute('y1', String(cy));
+                    line.setAttribute('x2', String(x2));
+                    line.setAttribute('y2', String(y2));
+                    // Estilo sutil para as linhas
+                    line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+                    line.setAttribute('stroke-width', '1');
+                    svg.appendChild(line);
+                }
             }
         }
 
@@ -600,6 +632,13 @@
 
             document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
             document.getElementById('itemsTableBody').addEventListener('click', handleTableClick);
+
+            const showLinesCheckbox = document.getElementById('showLinesCheckbox');
+            showLinesCheckbox.addEventListener('change', (event) => {
+                showSubdivisionLines = event.target.checked;
+                createWheel(); // Redesenha a roda para aplicar a mudança
+            });
+
             renderApp();
             updateSpeed(document.getElementById('speedSlider').value);
         });
