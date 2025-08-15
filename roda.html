@@ -28,7 +28,7 @@
         .wheel-container {
             position: relative;
             width: 100%;
-            max-width: 550px;
+            max-width: 650px;
             aspect-ratio: 1 / 1; /* Mantém o contêiner quadrado */
         }
 
@@ -163,7 +163,7 @@
         /* Estilos para o Gerenciador de Itens */
         .item-manager {
             width: 100%;
-            max-width: 600px;
+            max-width: 400px;
             margin-top: 40px;
             background: rgba(255,255,255,0.1);
             padding: 10px;
@@ -186,7 +186,7 @@
             flex-wrap: wrap;
             gap: 15px;
             margin: 0 auto 20px; /* Centraliza e mantém a margem inferior */
-            max-width: 450px;    /* Restringe a largura máxima */
+            max-width: 400px;    /* Restringe a largura máxima */
         }
 
         .item-form input {
@@ -387,6 +387,25 @@
                 svg.appendChild(path);
                 currentAngle += sliceSizeInDegrees;
             });
+                        // Adiciona as linhas de subdivisão para cada unidade de "quantidade"
+            const anglePerUnit = 360 / totalQuantity;
+            for (let i = 1; i <= totalQuantity; i++) {
+                const lineAngle = i * anglePerUnit;
+                const lineRad = (Math.PI / 180) * lineAngle;
+
+                const x2 = cx + r * Math.cos(lineRad);
+                const y2 = cy + r * Math.sin(lineRad);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', String(cx));
+                line.setAttribute('y1', String(cy));
+                line.setAttribute('x2', String(x2));
+                line.setAttribute('y2', String(y2));
+                // Estilo sutil para as linhas
+                line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+                line.setAttribute('stroke-width', '1');
+                svg.appendChild(line);
+            }
         }
 
         function spinWheel() {
