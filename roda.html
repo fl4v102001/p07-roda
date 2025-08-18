@@ -287,6 +287,27 @@
         .remove-btn:hover {
             color: #ff4757;
         }
+
+        .items-table .editable {
+            cursor: pointer;
+        }
+        .items-table .editable:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: 1px solid #ff6b6b;
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-size: 14px;
+        }
+        .edit-input:focus {
+            outline: none;
+        }
+
     </style>
     <style id="animation-style"></style>
 </head>
@@ -419,52 +440,43 @@
                 // Adicionar texto
                 const textAngle = startAngle + sliceSizeInDegrees / 2;
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                // Posiciona o texto um pouco para fora do centro, ao longo do raio
                 text.setAttribute('x', String(cx + r / 1.7)); 
                 text.setAttribute('y', String(cy));
-                // Alinha o texto no meio
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('dominant-baseline', 'middle');
-                // Rotaciona o texto em torno do centro da roda
                 text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
                 text.setAttribute('fill', 'white');
                 text.setAttribute('font-size', '16px');
                 text.setAttribute('font-weight', 'bold');
                 text.textContent = item.name;
-                // Adiciona uma sombra sutil ao texto para melhor legibilidade
                 text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
-
                 svg.appendChild(text);
 
                 currentAngle += sliceSizeInDegrees;
             });
-            // Adiciona as linhas de subdivisão para cada unidade de "quantidade"
+            
             if (showSubdivisionLines) {
                 const anglePerUnit = 360 / totalQuantity;
                 for (let i = 1; i <= totalQuantity; i++) {
                     const lineAngle = i * anglePerUnit;
                     const lineRad = (Math.PI / 180) * lineAngle;
-
                     const x2 = cx + r * Math.cos(lineRad);
                     const y2 = cy + r * Math.sin(lineRad);
-
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', String(cx));
                     line.setAttribute('y1', String(cy));
                     line.setAttribute('x2', String(x2));
                     line.setAttribute('y2', String(y2));
-                    // Estilo sutil para as linhas
                     line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
                     line.setAttribute('stroke-width', '1');
                     svg.appendChild(line);
                 }
             }
 
-            // Adicionar Círculo Interno
             const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             innerCircle.setAttribute('cx', '275');
             innerCircle.setAttribute('cy', '275');
-            innerCircle.setAttribute('r', String(r * 0.15)); // 20% do raio externo
+            innerCircle.setAttribute('r', String(r * 0.15));
             innerCircle.setAttribute('fill', '#2f3542');
             innerCircle.setAttribute('stroke', 'white');
             innerCircle.setAttribute('stroke-width', '4');
@@ -483,8 +495,6 @@
             spinButton.textContent = 'GIRANDO...';
             result.textContent = 'Girando...';
 
-            // Calcula minSpins proporcionalmente à duração do giro.
-            // Para 5s -> 5 voltas; Para 60s -> 20 voltas.
             const minSpins = Math.round((3 / 11) * spinDuration + (40 / 11));
             const maxSpins = minSpins + 2;
             const spins = Math.random() * (maxSpins - minSpins) + minSpins;
@@ -496,20 +506,14 @@
 
             const keyframes = `
                 @keyframes spinAnimation {
-                    from {
-                        transform: rotate(${initialRotation}deg);
-                    }
-                    to {
-                        transform: rotate(${finalRotation}deg);
-                    }
+                    from { transform: rotate(${initialRotation}deg); }
+                    to { transform: rotate(${finalRotation}deg); }
                 }
             `;
             animationStyle.innerHTML = keyframes;
-            // Mantém apenas a cubic-bezier para controlar a velocidade:
-            // Esta curva mantém velocidade máxima até ~80% e desacelera nos 20% finais
             wheelSVG.style.animation = `spinAnimation ${spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
             
-            currentRotation = finalRotation; // Atualiza a rotação para o próximo giro
+            currentRotation = finalRotation;
 
             requestAnimationFrame(updateResultDuranteSpin);
 
@@ -517,8 +521,7 @@
                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                 if (totalQuantity === 0) {
                     result.textContent = 'Roda vazia!';
-                }
-                else {
+                } else {
                     const finalPosition = finalRotation % 360;
                     const normalizedAngle = (270 - (finalPosition % 360) + 360) % 360;
                     let winner = null;
@@ -538,12 +541,9 @@
                 spinButton.textContent = 'GIRAR NOVAMENTE';
                 isSpinning = false;
 
-                // Limpa a animação para o próximo giro
-                // ...dentro do wheelSVG.addEventListener('animationend', ...)...
                 wheelSVG.style.transform = `rotate(${finalRotation}deg)`;
                 wheelSVG.style.animation = '';
                 animationStyle.innerHTML = '';
-                // ...restante do código...
             }, { once: true });
         }
 
@@ -551,7 +551,6 @@
             if (!isSpinning) return;
             const wheelSVG = document.getElementById('wheelSVG');
             const result = document.getElementById('result');
-            // Pega a rotação atual da matriz de transformação do CSS
             const transformMatrix = window.getComputedStyle(wheelSVG).transform;
             let currentAngle = 0;
             if (transformMatrix !== 'none') {
@@ -560,7 +559,6 @@
                 const b = parseFloat(values[1]);
                 currentAngle = Math.atan2(b, a) * (180 / Math.PI);
             }
-            // CORREÇÃO: Ajusta o ângulo para a posição do ponteiro (270 graus)
             const normalizedAngle = (270 - (currentAngle % 360) + 360) % 360;
             const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
             let currentItem = null;
@@ -589,12 +587,13 @@
 
             items.forEach((item, index) => {
                 const row = document.createElement('tr');
-                
+                row.setAttribute('data-index', index);
+
                 row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>${item.quantity}</td>
+                    <td class="editable" data-field="name">${item.name}</td>
+                    <td class="editable" data-field="quantity">${item.quantity}</td>
                     <td>
-                        <button class="remove-btn" data-index="${index}">&times;</button>
+                        <button class="remove-btn" data-action="remove" data-index="${index}">&times;</button>
                     </td>
                 `;
 
@@ -610,7 +609,6 @@
             if (availableColors.length > 0) {
                 return availableColors[Math.floor(Math.random() * availableColors.length)];
             }
-            // Fallback to a completely random color if palette is exhausted
             return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
         }
 
@@ -631,7 +629,7 @@
             if (name && quantity > 0) {
                 items.push({ name, quantity, color: getRandomColor() });
                 nameInput.value = '';
-                quantityInput.value = '10';
+                quantityInput.value = '1';
                 nameInput.focus();
                 renderApp();
                 saveItemsToSession();
@@ -639,11 +637,58 @@
         }
 
         function handleTableClick(event) {
-            if (event.target.classList.contains('remove-btn')) {
-                const index = parseInt(event.target.dataset.index, 10);
+            const target = event.target;
+
+            // --- Handle Remove Button ---
+            if (target.dataset.action === 'remove') {
+                const index = parseInt(target.dataset.index, 10);
                 items.splice(index, 1);
                 renderApp();
                 saveItemsToSession();
+                return;
+            }
+
+            // --- Handle Editable Cell Click ---
+            if (target.tagName === 'TD' && target.classList.contains('editable')) {
+                if (document.querySelector('.edit-input')) {
+                    return; // Exit if another edit is already in progress
+                }
+
+                const cell = target;
+                const index = parseInt(cell.parentElement.dataset.index, 10);
+                const field = cell.dataset.field;
+                const originalValue = items[index][field];
+
+                const input = document.createElement('input');
+                input.type = (field === 'quantity') ? 'number' : 'text';
+                input.className = 'edit-input';
+                input.value = originalValue;
+                
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+
+                const save = () => {
+                    const newValue = input.value;
+                    const newQuantity = parseInt(newValue, 10);
+
+                    if (field === 'name' && newValue.trim()) {
+                        items[index].name = newValue.trim();
+                    } else if (field === 'quantity' && newQuantity > 0) {
+                        items[index].quantity = newQuantity;
+                    }
+                    renderApp();
+                    saveItemsToSession();
+                };
+
+                input.addEventListener('blur', save);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        save();
+                    } else if (e.key === 'Escape') {
+                        renderTable(); // Just re-render to cancel
+                    }
+                });
             }
         }
 
@@ -657,7 +702,6 @@
                     }
                 } catch (e) {
                     console.error("Erro ao carregar itens da sessão:", e);
-                    // Mantém os itens padrão se houver erro
                 }
             }
 
@@ -667,7 +711,7 @@
             const showLinesCheckbox = document.getElementById('showLinesCheckbox');
             showLinesCheckbox.addEventListener('change', (event) => {
                 showSubdivisionLines = event.target.checked;
-                createWheel(); // Redesenha a roda para aplicar a mudança
+                createWheel();
             });
 
             renderApp();
