@@ -415,6 +415,27 @@
                 path.setAttribute('d', pathData);
                 path.setAttribute('fill', item.color);
                 svg.appendChild(path);
+
+                // Adicionar texto
+                const textAngle = startAngle + sliceSizeInDegrees / 2;
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                // Posiciona o texto um pouco para fora do centro, ao longo do raio
+                text.setAttribute('x', String(cx + r / 1.7)); 
+                text.setAttribute('y', String(cy));
+                // Alinha o texto no meio
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                // Rotaciona o texto em torno do centro da roda
+                text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '16px');
+                text.setAttribute('font-weight', 'bold');
+                text.textContent = item.name;
+                // Adiciona uma sombra sutil ao texto para melhor legibilidade
+                text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
+
+                svg.appendChild(text);
+
                 currentAngle += sliceSizeInDegrees;
             });
             // Adiciona as linhas de subdivisão para cada unidade de "quantidade"
@@ -433,11 +454,21 @@
                     line.setAttribute('x2', String(x2));
                     line.setAttribute('y2', String(y2));
                     // Estilo sutil para as linhas
-                    line.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+                    line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
                     line.setAttribute('stroke-width', '1');
                     svg.appendChild(line);
                 }
             }
+
+            // Adicionar Círculo Interno
+            const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            innerCircle.setAttribute('cx', '275');
+            innerCircle.setAttribute('cy', '275');
+            innerCircle.setAttribute('r', String(r * 0.15)); // 20% do raio externo
+            innerCircle.setAttribute('fill', '#2f3542');
+            innerCircle.setAttribute('stroke', 'white');
+            innerCircle.setAttribute('stroke-width', '4');
+            svg.appendChild(innerCircle);
         }
 
         function spinWheel() {
