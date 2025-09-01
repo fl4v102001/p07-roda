@@ -1,0 +1,18 @@
+name: Deploy HTML to NGINX
+
+on:
+  push:
+    branches: [ main ]  # ou a branch que você usa
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # o GitHub vai procurar um runner no seu servidor
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v3
+
+      - name: Copiar HTML para o NGINX
+        run: |
+          sudo cp roda.html /var/www/roda/roda.html
+          sudo systemctl reload nginx

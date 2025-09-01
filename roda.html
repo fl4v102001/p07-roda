@@ -51,6 +51,10 @@
             height: 100%;
         }
 
+        #wheel-parts {
+            transform-origin: 275px 275px;
+        }
+
         .controls {
             display: flex;
             flex-direction: column;
@@ -398,6 +402,9 @@
             const svg = document.getElementById('wheelSVG');
             svg.innerHTML = '';
 
+            const wheelParts = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            wheelParts.setAttribute('id', 'wheel-parts');
+            
             // Desenha um círculo de borda para um visual consistente
             const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             borderCircle.setAttribute('cx', '275');
@@ -435,7 +442,7 @@
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
                 path.setAttribute('fill', item.color);
-                svg.appendChild(path);
+                wheelParts.appendChild(path);
 
                 // Adicionar texto
                 const textAngle = startAngle + sliceSizeInDegrees / 2;
@@ -450,7 +457,7 @@
                 text.setAttribute('font-weight', 'bold');
                 text.textContent = item.name;
                 text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
-                svg.appendChild(text);
+                wheelParts.appendChild(text);
 
                 currentAngle += sliceSizeInDegrees;
             });
@@ -469,18 +476,38 @@
                     line.setAttribute('y2', String(y2));
                     line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
                     line.setAttribute('stroke-width', '1');
-                    svg.appendChild(line);
+                    wheelParts.appendChild(line);
                 }
             }
+            
+            svg.appendChild(wheelParts);
 
-            const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            innerCircle.setAttribute('cx', '275');
-            innerCircle.setAttribute('cy', '275');
-            innerCircle.setAttribute('r', String(r * 0.15));
-            innerCircle.setAttribute('fill', '#2f3542');
-            innerCircle.setAttribute('stroke', 'white');
-            innerCircle.setAttribute('stroke-width', '4');
-            svg.appendChild(innerCircle);
+            // Grupo para o botão de play central
+            const playButtonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            playButtonGroup.setAttribute('id', 'play-button');
+            playButtonGroup.setAttribute('cursor', 'pointer');
+            playButtonGroup.onclick = spinWheel; // Aciona a função de girar
+
+            // Círculo de fundo do botão
+            const buttonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            buttonCircle.setAttribute('cx', '275');
+            buttonCircle.setAttribute('cy', '275');
+            buttonCircle.setAttribute('r', String(r * 0.20)); // Mesmo raio do círculo original
+            buttonCircle.setAttribute('fill', '#2f3542');
+            buttonCircle.setAttribute('stroke', 'white');
+            buttonCircle.setAttribute('stroke-width', '4');
+            playButtonGroup.appendChild(buttonCircle);
+
+            // Símbolo de Play (triângulo)
+            const playSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            playSymbol.setAttribute('id', 'play-symbol');
+            const iconSize = r * 0.08; // Tamanho do ícone de play
+            const pathData = `M ${cx - iconSize / 1.5}, ${cy - iconSize} L ${cx + iconSize}, ${cy} L ${cx - iconSize / 1.5}, ${cy + iconSize} Z`;
+            playSymbol.setAttribute('d', pathData);
+            playSymbol.setAttribute('fill', 'white');
+            playButtonGroup.appendChild(playSymbol);
+
+            svg.appendChild(playButtonGroup);
         }
 
         function spinWheel() {
@@ -488,10 +515,14 @@
             isSpinning = true;
             const spinButton = document.querySelector('.spin-button');
             const result = document.getElementById('result');
-            const wheelSVG = document.getElementById('wheelSVG');
+            const wheelParts = document.getElementById('wheel-parts');
+            const playButton = document.getElementById('play-button');
+            const playSymbol = document.getElementById('play-symbol');
             const animationStyle = document.getElementById('animation-style');
 
             spinButton.disabled = true;
+            playButton.onclick = null; // Desabilita o clique no botão play
+            playSymbol.style.display = 'none'; // Esconde apenas o triângulo
             spinButton.textContent = 'GIRANDO...';
             result.textContent = 'Girando...';
 
@@ -511,13 +542,13 @@
                 }
             `;
             animationStyle.innerHTML = keyframes;
-            wheelSVG.style.animation = `spinAnimation ${spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
+            wheelParts.style.animation = `spinAnimation ${spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
             
             currentRotation = finalRotation;
 
             requestAnimationFrame(updateResultDuranteSpin);
 
-            wheelSVG.addEventListener('animationend', () => {
+            wheelParts.addEventListener('animationend', () => {
                 const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
                 if (totalQuantity === 0) {
                     result.textContent = 'Roda vazia!';
@@ -539,19 +570,21 @@
 
                 spinButton.disabled = false;
                 spinButton.textContent = 'GIRAR NOVAMENTE';
+                playButton.onclick = spinWheel; // Reabilita o clique
+                playSymbol.style.display = 'block'; // Mostra o triângulo
                 isSpinning = false;
 
-                wheelSVG.style.transform = `rotate(${finalRotation}deg)`;
-                wheelSVG.style.animation = '';
+                wheelParts.style.transform = `rotate(${finalRotation}deg)`;
+                wheelParts.style.animation = '';
                 animationStyle.innerHTML = '';
             }, { once: true });
         }
 
         function updateResultDuranteSpin() {
             if (!isSpinning) return;
-            const wheelSVG = document.getElementById('wheelSVG');
+            const wheelParts = document.getElementById('wheel-parts');
             const result = document.getElementById('result');
-            const transformMatrix = window.getComputedStyle(wheelSVG).transform;
+            const transformMatrix = window.getComputedStyle(wheelParts).transform;
             let currentAngle = 0;
             if (transformMatrix !== 'none') {
                 const values = transformMatrix.split('(')[1].split(')')[0].split(',');
