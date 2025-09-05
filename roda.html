@@ -141,30 +141,6 @@
             height: 16px;
         }
 
-        .spin-button {
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .spin-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-
-        .spin-button:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         .result {
             font-size: 24px;
             font-weight: bold;
@@ -320,7 +296,7 @@
         <h1 class="title">🎯 Roda de Sorteio</h1>
 
         <div class="result" id="result">
-            Clique em "GIRAR RODA" para começar!
+            Clique no botão PLAY para começar!
         </div>        
 
         <div class="wheel-container">
@@ -331,7 +307,6 @@
         </div>
 
         <div class="controls">
-            <button class="spin-button" onclick="spinWheel()">GIRAR RODA</button>
             <div class="speed-control">
                 <label class="speed-label">Velocidade:</label>
                 <input 
@@ -342,7 +317,6 @@
                     max="60" 
                     value="20" 
                     step="5"
-                    oninput="updateSpeed(this.value)"
                 >
                 <span class="speed-value" id="speedValue">20s</span>
             </div>
@@ -377,203 +351,300 @@
     </div>
 
     <script>
-        // Definindo os tamanhos das 19 fatias (em graus) - total deve ser 360
-        // ETAPA 1: Nova estrutura de dados
-        let items = [
-            { name: 'Alex', quantity: 10, color: '#ff6b6b' },
-            { name: 'Ariel', quantity: 20, color: '#4ecdc4' },
-            { name: 'Cris', quantity: 5, color: '#45b7d1' },
-            { name: 'Luan', quantity: 15, color: '#feca57' },
-            { name: 'Andrea', quantity: 30, color: '#ff9ff3' },
-            { name: 'Fran', quantity: 10, color: '#54a0ff' },
-        ];
-
-        let isSpinning = false;
-        let currentRotation = 0;
-        let spinDuration = 20; // Duração padrão em segundos
-        let showSubdivisionLines = true; // Controla a visibilidade das linhas
-
-        function updateSpeed(value) {
-            spinDuration = parseFloat(value);
-            document.getElementById('speedValue').textContent = value + 's';
-        }
-
-        function createWheel() {
-            const svg = document.getElementById('wheelSVG');
-            svg.innerHTML = '';
-
-            const wheelParts = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            wheelParts.setAttribute('id', 'wheel-parts');
-            
-            // Desenha um círculo de borda para um visual consistente
-            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            borderCircle.setAttribute('cx', '275');
-            borderCircle.setAttribute('cy', '275');
-            borderCircle.setAttribute('r', '271'); // Raio do viewBox/2 - largura da borda/2
-            borderCircle.setAttribute('fill', 'none');
-            borderCircle.setAttribute('stroke', '#2f3542');
-            borderCircle.setAttribute('stroke-width', '8');
-            svg.appendChild(borderCircle);
-
-            const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-            if (totalQuantity === 0) {
-                document.querySelector('.spin-button').disabled = true;
-                return;
-            }
-            const cx = 275, cy = 275, r = 267; // Raio das fatias para caber dentro da borda
-            let currentAngle = 0;
-            items.forEach(item => {
-                const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
-                const startAngle = currentAngle;
-                const endAngle = currentAngle + sliceSizeInDegrees;
-                const startRad = (Math.PI / 180) * startAngle;
-                const endRad = (Math.PI / 180) * endAngle;
-                const x1 = cx + r * Math.cos(startRad);
-                const y1 = cy + r * Math.sin(startRad);
-                const x2 = cx + r * Math.cos(endRad);
-                const y2 = cy + r * Math.sin(endRad);
-                const largeArcFlag = sliceSizeInDegrees > 180 ? 1 : 0;
-                const pathData = [
-                    `M ${cx} ${cy}`,
-                    `L ${x1} ${y1}`,
-                    `A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                    'Z'
-                ].join(' ');
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', pathData);
-                path.setAttribute('fill', item.color);
-                wheelParts.appendChild(path);
-
-                // Adicionar texto
-                const textAngle = startAngle + sliceSizeInDegrees / 2;
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', String(cx + r / 1.7)); 
-                text.setAttribute('y', String(cy));
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('dominant-baseline', 'middle');
-                text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
-                text.setAttribute('fill', 'white');
-                text.setAttribute('font-size', '16px');
-                text.setAttribute('font-weight', 'bold');
-                text.textContent = item.name;
-                text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
-                wheelParts.appendChild(text);
-
-                currentAngle += sliceSizeInDegrees;
-            });
-            
-            if (showSubdivisionLines) {
-                const anglePerUnit = 360 / totalQuantity;
-                for (let i = 1; i <= totalQuantity; i++) {
-                    const lineAngle = i * anglePerUnit;
-                    const lineRad = (Math.PI / 180) * lineAngle;
-                    const x2 = cx + r * Math.cos(lineRad);
-                    const y2 = cy + r * Math.sin(lineRad);
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', String(cx));
-                    line.setAttribute('y1', String(cy));
-                    line.setAttribute('x2', String(x2));
-                    line.setAttribute('y2', String(y2));
-                    line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
-                    line.setAttribute('stroke-width', '1');
-                    wheelParts.appendChild(line);
+    (function() {
+        const config = {
+            selectors: {
+                svg: '#wheelSVG',
+                wheelParts: '#wheel-parts',
+                playButton: '#play-button',
+                playSymbol: '#play-symbol',
+                animationStyle: '#animation-style',
+                result: '#result',
+                speedSlider: '#speedSlider',
+                speedValue: '#speedValue',
+                showLinesCheckbox: '#showLinesCheckbox',
+                addItemForm: '#addItemForm',
+                itemName: '#itemName',
+                itemQuantity: '#itemQuantity',
+                itemsTableBody: '#itemsTableBody',
+            },
+            wheel: {
+                cx: 275,
+                cy: 275,
+                r: 267,
+                borderCircle: {
+                    r: 271,
+                    stroke: '#2f3542',
+                    strokeWidth: '8',
+                },
+                playButtonCircle: {
+                    rRatio: 0.20,
+                    fill: '#2f3542',
+                    stroke: 'white',
+                    strokeWidth: '4',
+                },
+                playIcon: {
+                    sizeRatio: 0.08,
                 }
-            }
-            
-            svg.appendChild(wheelParts);
+            },
+            colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24', '#0abde3', '#7bed9f', '#2e86de', '#a55eea', '#26de81', '#fc5c65', '#fd79a8']
+        };
 
-            // Grupo para o botão de play central
-            const playButtonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            playButtonGroup.setAttribute('id', 'play-button');
-            playButtonGroup.setAttribute('cursor', 'pointer');
-            playButtonGroup.onclick = spinWheel; // Aciona a função de girar
+        const state = {
+            items: [],
+            isSpinning: false,
+            currentRotation: 0,
+            spinDuration: 20,
+            showSubdivisionLines: true,
+            winnerText: 'Clique no botão PLAY para começar!',
+            editingCell: null, // { index, field }
+            newItemName: '',
+            newItemQuantity: 1,
+        };
 
-            // Círculo de fundo do botão
-            const buttonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            buttonCircle.setAttribute('cx', '275');
-            buttonCircle.setAttribute('cy', '275');
-            buttonCircle.setAttribute('r', String(r * 0.20)); // Mesmo raio do círculo original
-            buttonCircle.setAttribute('fill', '#2f3542');
-            buttonCircle.setAttribute('stroke', 'white');
-            buttonCircle.setAttribute('stroke-width', '4');
-            playButtonGroup.appendChild(buttonCircle);
-
-            // Símbolo de Play (triângulo)
-            const playSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            playSymbol.setAttribute('id', 'play-symbol');
-            const iconSize = r * 0.08; // Tamanho do ícone de play
-            const pathData = `M ${cx - iconSize / 1.5}, ${cy - iconSize} L ${cx + iconSize}, ${cy} L ${cx - iconSize / 1.5}, ${cy + iconSize} Z`;
-            playSymbol.setAttribute('d', pathData);
-            playSymbol.setAttribute('fill', 'white');
-            playButtonGroup.appendChild(playSymbol);
-
-            svg.appendChild(playButtonGroup);
-        }
-
-        function spinWheel() {
-            if (isSpinning || items.length === 0) return;
-            isSpinning = true;
-            const spinButton = document.querySelector('.spin-button');
-            const result = document.getElementById('result');
-            const wheelParts = document.getElementById('wheel-parts');
-            const playButton = document.getElementById('play-button');
-            const playSymbol = document.getElementById('play-symbol');
-            const animationStyle = document.getElementById('animation-style');
-
-            spinButton.disabled = true;
-            playButton.onclick = null; // Desabilita o clique no botão play
-            playSymbol.style.display = 'none'; // Esconde apenas o triângulo
-            spinButton.textContent = 'GIRANDO...';
-            result.textContent = 'Girando...';
-
+        // --- Pure Functions ---
+        function calculateFinalRotation(spinDuration, currentRotation) {
             const minSpins = Math.round((3 / 11) * spinDuration + (40 / 11));
             const maxSpins = minSpins + 2;
             const spins = Math.random() * (maxSpins - minSpins) + minSpins;
             const finalAngle = Math.random() * 360;
+            return currentRotation + (spins * 360) + finalAngle;
+        }
 
-            const initialRotation = currentRotation;
-            const additionalRotation = (spins * 360) + finalAngle;
-            const finalRotation = initialRotation + additionalRotation;
+        function calculateWinner(items, finalAngle) {
+            const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+            if (totalQuantity === 0) return null;
 
-            const keyframes = `
+            const finalPosition = finalAngle % 360;
+            const normalizedAngle = (270 - finalPosition + 360) % 360;
+            let cumulativeAngle = 0;
+            for (const item of items) {
+                const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                cumulativeAngle += sliceSizeInDegrees;
+                if (normalizedAngle < cumulativeAngle) {
+                    return item;
+                }
+            }
+            return null;
+        }
+
+        function generateKeyframes(initialRotation, finalRotation) {
+            return `
                 @keyframes spinAnimation {
                     from { transform: rotate(${initialRotation}deg); }
                     to { transform: rotate(${finalRotation}deg); }
                 }
             `;
+        }
+
+        function getRandomColor() {
+            const usedColors = state.items.map(item => item.color);
+            const availableColors = config.colors.filter(color => !usedColors.includes(color));
+            if (availableColors.length > 0) {
+                return availableColors[Math.floor(Math.random() * availableColors.length)];
+            }
+            return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        }
+
+        // --- DOM Update Functions ---
+        function renderWheel() {
+            const svg = document.querySelector(config.selectors.svg);
+            svg.innerHTML = '';
+            const wheelParts = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            wheelParts.setAttribute('id', config.selectors.wheelParts.slice(1));
+            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            borderCircle.setAttribute('cx', config.wheel.cx);
+            borderCircle.setAttribute('cy', config.wheel.cy);
+            borderCircle.setAttribute('r', config.wheel.borderCircle.r);
+            borderCircle.setAttribute('fill', 'none');
+            borderCircle.setAttribute('stroke', config.wheel.borderCircle.stroke);
+            borderCircle.setAttribute('stroke-width', config.wheel.borderCircle.strokeWidth);
+            svg.appendChild(borderCircle);
+            const totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
+            if (totalQuantity > 0) {
+                const { cx, cy, r } = config.wheel;
+                let currentAngle = 0;
+                state.items.forEach(item => {
+                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                    const startAngle = currentAngle;
+                    const endAngle = currentAngle + sliceSizeInDegrees;
+                    const startRad = (Math.PI / 180) * startAngle;
+                    const endRad = (Math.PI / 180) * endAngle;
+                    const x1 = cx + r * Math.cos(startRad);
+                    const y1 = cy + r * Math.sin(startRad);
+                    const x2 = cx + r * Math.cos(endRad);
+                    const y2 = cy + r * Math.sin(endRad);
+                    const largeArcFlag = sliceSizeInDegrees > 180 ? 1 : 0;
+                    const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', pathData);
+                    path.setAttribute('fill', item.color);
+                    wheelParts.appendChild(path);
+                    const textAngle = startAngle + sliceSizeInDegrees / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', String(cx + r / 1.7)); 
+                    text.setAttribute('y', String(cy));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
+                    text.setAttribute('fill', 'white');
+                    text.setAttribute('font-size', '16px');
+                    text.setAttribute('font-weight', 'bold');
+                    text.textContent = item.name;
+                    text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
+                    wheelParts.appendChild(text);
+                    currentAngle += sliceSizeInDegrees;
+                });
+                if (state.showSubdivisionLines) {
+                    const anglePerUnit = 360 / totalQuantity;
+                    for (let i = 1; i <= totalQuantity; i++) {
+                        const lineAngle = i * anglePerUnit;
+                        const lineRad = (Math.PI / 180) * lineAngle;
+                        const x2 = cx + r * Math.cos(lineRad);
+                        const y2 = cy + r * Math.sin(lineRad);
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', String(cx));
+                        line.setAttribute('y1', String(cy));
+                        line.setAttribute('x2', String(x2));
+                        line.setAttribute('y2', String(y2));
+                        line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
+                        line.setAttribute('stroke-width', '1');
+                        wheelParts.appendChild(line);
+                    }
+                }
+            }
+            svg.appendChild(wheelParts);
+            const playButtonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            playButtonGroup.setAttribute('id', config.selectors.playButton.slice(1));
+            playButtonGroup.setAttribute('cursor', 'pointer');
+            if (!state.isSpinning) {
+                playButtonGroup.onclick = spinWheel;
+            }
+            const buttonCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            buttonCircle.setAttribute('cx', config.wheel.cx);
+            buttonCircle.setAttribute('cy', config.wheel.cy);
+            buttonCircle.setAttribute('r', String(config.wheel.r * config.wheel.playButtonCircle.rRatio));
+            buttonCircle.setAttribute('fill', config.wheel.playButtonCircle.fill);
+            buttonCircle.setAttribute('stroke', config.wheel.playButtonCircle.stroke);
+            buttonCircle.setAttribute('stroke-width', config.wheel.playButtonCircle.strokeWidth);
+            playButtonGroup.appendChild(buttonCircle);
+            const playSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            playSymbol.setAttribute('id', config.selectors.playSymbol.slice(1));
+            if (state.isSpinning) {
+                playSymbol.style.display = 'none';
+            }
+            const iconSize = config.wheel.r * config.wheel.playIcon.sizeRatio;
+            const pathData = `M ${config.wheel.cx - iconSize / 1.5}, ${config.wheel.cy - iconSize} L ${config.wheel.cx + iconSize}, ${config.wheel.cy} L ${config.wheel.cx - iconSize / 1.5}, ${config.wheel.cy + iconSize} Z`;
+            playSymbol.setAttribute('d', pathData);
+            playSymbol.setAttribute('fill', 'white');
+            playButtonGroup.appendChild(playSymbol);
+            svg.appendChild(playButtonGroup);
+        }
+
+        function renderTable() {
+            const tableBody = document.querySelector(config.selectors.itemsTableBody);
+            tableBody.innerHTML = '';
+            state.items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-index', index);
+                const isEditing = state.editingCell && state.editingCell.index === index;
+                const nameCell = document.createElement('td');
+                if (isEditing && state.editingCell.field === 'name') {
+                    const input = document.createElement('input');
+                    input.className = 'edit-input';
+                    input.type = 'text';
+                    input.value = item.name;
+                    input.addEventListener('blur', (e) => handleEdit(index, 'name', e.target.value));
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') handleEdit(index, 'name', e.target.value);
+                        if (e.key === 'Escape') { state.editingCell = null; renderTable(); }
+                    });
+                    nameCell.appendChild(input);
+                    setTimeout(() => input.focus(), 0);
+                } else {
+                    nameCell.textContent = item.name;
+                    nameCell.classList.add('editable');
+                    nameCell.dataset.field = 'name';
+                }
+                const quantityCell = document.createElement('td');
+                if (isEditing && state.editingCell.field === 'quantity') {
+                    const input = document.createElement('input');
+                    input.className = 'edit-input';
+                    input.type = 'number';
+                    input.value = item.quantity;
+                    input.addEventListener('blur', (e) => handleEdit(index, 'quantity', e.target.value));
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') handleEdit(index, 'quantity', e.target.value);
+                        if (e.key === 'Escape') { state.editingCell = null; renderTable(); }
+                    });
+                    quantityCell.appendChild(input);
+                    setTimeout(() => input.focus(), 0);
+                } else {
+                    quantityCell.textContent = item.quantity;
+                    quantityCell.classList.add('editable');
+                    quantityCell.dataset.field = 'quantity';
+                }
+                const actionCell = document.createElement('td');
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.dataset.action = 'remove';
+                removeBtn.dataset.index = index;
+                actionCell.appendChild(removeBtn);
+                row.appendChild(nameCell);
+                row.appendChild(quantityCell);
+                row.appendChild(actionCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderResult() {
+            const result = document.querySelector(config.selectors.result);
+            result.innerHTML = state.winnerText;
+        }
+
+        function renderForm() {
+            const nameInput = document.querySelector(config.selectors.itemName);
+            const quantityInput = document.querySelector(config.selectors.itemQuantity);
+            nameInput.value = state.newItemName;
+            quantityInput.value = state.newItemQuantity;
+        }
+
+        function renderSpinResult(currentItem) {
+            const result = document.querySelector(config.selectors.result);
+            result.innerHTML = `Girando... <strong>${currentItem ? currentItem.name : ''}</strong>`;
+        }
+
+        // --- Event Handlers & State Changers ---
+        function updateSpeed(value) {
+            state.spinDuration = parseFloat(value);
+            document.querySelector(config.selectors.speedValue).textContent = value + 's';
+        }
+
+        function spinWheel() {
+            if (state.isSpinning || state.items.length === 0) return;
+            state.isSpinning = true;
+            state.winnerText = 'Girando...';
+            renderResult();
+            renderWheel();
+
+            const wheelParts = document.querySelector(config.selectors.wheelParts);
+            const animationStyle = document.querySelector(config.selectors.animationStyle);
+            const finalRotation = calculateFinalRotation(state.spinDuration, state.currentRotation);
+            const keyframes = generateKeyframes(state.currentRotation, finalRotation);
+
             animationStyle.innerHTML = keyframes;
-            wheelParts.style.animation = `spinAnimation ${spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
-            
-            currentRotation = finalRotation;
+            wheelParts.style.animation = `spinAnimation ${state.spinDuration}s cubic-bezier(0,-0.01,.41,1) forwards`;
+            state.currentRotation = finalRotation;
 
             requestAnimationFrame(updateResultDuranteSpin);
 
             wheelParts.addEventListener('animationend', () => {
-                const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-                if (totalQuantity === 0) {
-                    result.textContent = 'Roda vazia!';
-                } else {
-                    const finalPosition = finalRotation % 360;
-                    const normalizedAngle = (270 - (finalPosition % 360) + 360) % 360;
-                    let winner = null;
-                    let cumulativeAngle = 0;
-                    for (const item of items) {
-                        const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
-                        cumulativeAngle += sliceSizeInDegrees;
-                        if (normalizedAngle < cumulativeAngle) {
-                            winner = item;
-                            break;
-                        }
-                    }
-                    result.innerHTML = `🎉 Resultado: <strong>${winner ? winner.name : 'Nenhum'}</strong>`;
-                }
-
-                spinButton.disabled = false;
-                spinButton.textContent = 'GIRAR NOVAMENTE';
-                playButton.onclick = spinWheel; // Reabilita o clique
-                playSymbol.style.display = 'block'; // Mostra o triângulo
-                isSpinning = false;
-
+                const winner = calculateWinner(state.items, finalRotation);
+                state.winnerText = `🎉 Resultado: <strong>${winner ? winner.name : 'Nenhum'}</strong>`;
+                state.isSpinning = false;
+                renderResult();
+                renderWheel();
                 wheelParts.style.transform = `rotate(${finalRotation}deg)`;
                 wheelParts.style.animation = '';
                 animationStyle.innerHTML = '';
@@ -581,175 +652,106 @@
         }
 
         function updateResultDuranteSpin() {
-            if (!isSpinning) return;
-            const wheelParts = document.getElementById('wheel-parts');
-            const result = document.getElementById('result');
+            if (!state.isSpinning) return;
+            const wheelParts = document.querySelector(config.selectors.wheelParts);
             const transformMatrix = window.getComputedStyle(wheelParts).transform;
             let currentAngle = 0;
             if (transformMatrix !== 'none') {
                 const values = transformMatrix.split('(')[1].split(')')[0].split(',');
-                const a = parseFloat(values[0]);
-                const b = parseFloat(values[1]);
-                currentAngle = Math.atan2(b, a) * (180 / Math.PI);
+                currentAngle = Math.atan2(parseFloat(values[1]), parseFloat(values[0])) * (180 / Math.PI);
             }
-            const normalizedAngle = (270 - (currentAngle % 360) + 360) % 360;
-            const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-            let currentItem = null;
-            let cumulativeAngle = 0;
-            if (totalQuantity > 0) {
-                for (const item of items) {
-                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
-                    cumulativeAngle += sliceSizeInDegrees;
-                    if (normalizedAngle < cumulativeAngle) {
-                        currentItem = item;
-                        break;
-                    }
-                }
-            }
-            result.innerHTML = `Girando... <strong>${currentItem ? currentItem.name : ''}</strong>`;
+            const winner = calculateWinner(state.items, currentAngle);
+            renderSpinResult(winner);
             requestAnimationFrame(updateResultDuranteSpin);
         }
 
         function saveItemsToSession() {
-            sessionStorage.setItem('rouletteItems', JSON.stringify(items));
-        }
-
-        function renderTable() {
-            const tableBody = document.getElementById('itemsTableBody');
-            tableBody.innerHTML = ''; // Clear existing rows
-
-            items.forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.setAttribute('data-index', index);
-
-                row.innerHTML = `
-                    <td class="editable" data-field="name">${item.name}</td>
-                    <td class="editable" data-field="quantity">${item.quantity}</td>
-                    <td>
-                        <button class="remove-btn" data-action="remove" data-index="${index}">&times;</button>
-                    </td>
-                `;
-
-                tableBody.appendChild(row);
-            });
-        }
-
-        function getRandomColor() {
-            const palette = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24', '#0abde3', '#7bed9f', '#2e86de', '#a55eea', '#26de81', '#fc5c65', '#fd79a8'];
-            const usedColors = items.map(item => item.color);
-            const availableColors = palette.filter(color => !usedColors.includes(color));
-            
-            if (availableColors.length > 0) {
-                return availableColors[Math.floor(Math.random() * availableColors.length)];
-            }
-            return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-        }
-
-        function renderApp() {
-            createWheel();
-            renderTable();
-            document.querySelector('.spin-button').disabled = items.length === 0;
+            sessionStorage.setItem('rouletteItems', JSON.stringify(state.items));
         }
 
         function handleAddItem(event) {
             event.preventDefault();
-            const nameInput = document.getElementById('itemName');
-            const quantityInput = document.getElementById('itemQuantity');
-
-            const name = nameInput.value.trim();
-            const quantity = parseInt(quantityInput.value, 10);
-
-            if (name && quantity > 0) {
-                items.push({ name, quantity, color: getRandomColor() });
-                nameInput.value = '';
-                quantityInput.value = '1';
-                nameInput.focus();
-                renderApp();
+            if (state.newItemName && state.newItemQuantity > 0) {
+                state.items.push({ 
+                    name: state.newItemName, 
+                    quantity: state.newItemQuantity, 
+                    color: getRandomColor() 
+                });
+                state.newItemName = '';
+                state.newItemQuantity = 1;
+                renderWheel();
+                renderTable();
+                renderForm();
                 saveItemsToSession();
+                document.querySelector(config.selectors.itemName).focus();
             }
+        }
+
+        function handleEdit(index, field, value) {
+            const quantity = parseInt(value, 10);
+            if (field === 'name' && value.trim()) {
+                state.items[index].name = value.trim();
+            } else if (field === 'quantity' && quantity > 0) {
+                state.items[index].quantity = quantity;
+            }
+            state.editingCell = null;
+            renderWheel();
+            renderTable();
+            saveItemsToSession();
         }
 
         function handleTableClick(event) {
             const target = event.target;
-
-            // --- Handle Remove Button ---
+            const dataIndex = target.dataset.index || target.parentElement.dataset.index;
             if (target.dataset.action === 'remove') {
-                const index = parseInt(target.dataset.index, 10);
-                items.splice(index, 1);
-                renderApp();
+                state.items.splice(parseInt(dataIndex, 10), 1);
+                renderWheel();
+                renderTable();
                 saveItemsToSession();
                 return;
             }
-
-            // --- Handle Editable Cell Click ---
-            if (target.tagName === 'TD' && target.classList.contains('editable')) {
-                if (document.querySelector('.edit-input')) {
-                    return; // Exit if another edit is already in progress
-                }
-
-                const cell = target;
-                const index = parseInt(cell.parentElement.dataset.index, 10);
-                const field = cell.dataset.field;
-                const originalValue = items[index][field];
-
-                const input = document.createElement('input');
-                input.type = (field === 'quantity') ? 'number' : 'text';
-                input.className = 'edit-input';
-                input.value = originalValue;
-                
-                cell.innerHTML = '';
-                cell.appendChild(input);
-                input.focus();
-
-                const save = () => {
-                    const newValue = input.value;
-                    const newQuantity = parseInt(newValue, 10);
-
-                    if (field === 'name' && newValue.trim()) {
-                        items[index].name = newValue.trim();
-                    } else if (field === 'quantity' && newQuantity > 0) {
-                        items[index].quantity = newQuantity;
-                    }
-                    renderApp();
-                    saveItemsToSession();
-                };
-
-                input.addEventListener('blur', save);
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        save();
-                    } else if (e.key === 'Escape') {
-                        renderTable(); // Just re-render to cancel
-                    }
-                });
+            if (target.classList.contains('editable')) {
+                state.editingCell = { index: parseInt(dataIndex, 10), field: target.dataset.field };
+                renderTable();
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function init() {
             const savedItems = sessionStorage.getItem('rouletteItems');
             if (savedItems) {
                 try {
                     const parsedItems = JSON.parse(savedItems);
                     if (Array.isArray(parsedItems)) {
-                        items = parsedItems;
+                        state.items = parsedItems;
                     }
                 } catch (e) {
                     console.error("Erro ao carregar itens da sessão:", e);
+                    state.items = [];
                 }
             }
-
-            document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
-            document.getElementById('itemsTableBody').addEventListener('click', handleTableClick);
-
-            const showLinesCheckbox = document.getElementById('showLinesCheckbox');
-            showLinesCheckbox.addEventListener('change', (event) => {
-                showSubdivisionLines = event.target.checked;
-                createWheel();
+            document.querySelector(config.selectors.addItemForm).addEventListener('submit', handleAddItem);
+            document.querySelector(config.selectors.itemsTableBody).addEventListener('click', handleTableClick);
+            document.querySelector(config.selectors.speedSlider).addEventListener('input', (e) => updateSpeed(e.target.value));
+            document.querySelector(config.selectors.showLinesCheckbox).addEventListener('change', (event) => {
+                state.showSubdivisionLines = event.target.checked;
+                renderWheel();
+            });
+            document.querySelector(config.selectors.itemName).addEventListener('input', e => {
+                state.newItemName = e.target.value;
+            });
+            document.querySelector(config.selectors.itemQuantity).addEventListener('input', e => {
+                state.newItemQuantity = parseInt(e.target.value, 10) || 1;
             });
 
-            renderApp();
-            updateSpeed(document.getElementById('speedSlider').value);
-        });
+            renderWheel();
+            renderTable();
+            renderResult();
+            renderForm();
+            updateSpeed(document.querySelector(config.selectors.speedSlider).value);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
     </script>
 </body>
 </html>
