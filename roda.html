@@ -387,7 +387,15 @@
                     sizeRatio: 0.08,
                 }
             },
-            colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24', '#0abde3', '#7bed9f', '#2e86de', '#a55eea', '#26de81', '#fc5c65', '#fd79a8']
+            colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24', '#0abde3', '#7bed9f', '#2e86de', '#a55eea', '#26de81', '#fc5c65', '#fd79a8'],
+            defaultItems: [
+                { name: 'Alex', quantity: 10, color: '#ff6b6b' },
+                { name: 'Ariel', quantity: 20, color: '#4ecdc4' },
+                { name: 'Cris', quantity: 5, color: '#45b7d1' },
+                { name: 'Luan', quantity: 15, color: '#feca57' },
+                { name: 'Andrea', quantity: 30, color: '#ff9ff3' },
+                { name: 'Fran', quantity: 10, color: '#54a0ff' },
+            ]
         };
 
         const state = {
@@ -452,6 +460,8 @@
             svg.innerHTML = '';
             const wheelParts = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             wheelParts.setAttribute('id', config.selectors.wheelParts.slice(1));
+            wheelParts.style.transform = `rotate(${state.currentRotation}deg)`;
+
             const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             borderCircle.setAttribute('cx', config.wheel.cx);
             borderCircle.setAttribute('cy', config.wheel.cy);
@@ -459,7 +469,7 @@
             borderCircle.setAttribute('fill', 'none');
             borderCircle.setAttribute('stroke', config.wheel.borderCircle.stroke);
             borderCircle.setAttribute('stroke-width', config.wheel.borderCircle.strokeWidth);
-            svg.appendChild(borderCircle);
+            
             const totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
             if (totalQuantity > 0) {
                 const { cx, cy, r } = config.wheel;
@@ -467,6 +477,8 @@
                 state.items.forEach(item => {
                     const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
                     const startAngle = currentAngle;
+                    
+                    // Draw the colored slice path first
                     const endAngle = currentAngle + sliceSizeInDegrees;
                     const startRad = (Math.PI / 180) * startAngle;
                     const endRad = (Math.PI / 180) * endAngle;
@@ -480,6 +492,8 @@
                     path.setAttribute('d', pathData);
                     path.setAttribute('fill', item.color);
                     wheelParts.appendChild(path);
+
+                    // Draw the text for the slice
                     const textAngle = startAngle + sliceSizeInDegrees / 2;
                     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                     text.setAttribute('x', String(cx + r / 1.7)); 
@@ -493,12 +507,16 @@
                     text.textContent = item.name;
                     text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
                     wheelParts.appendChild(text);
+
                     currentAngle += sliceSizeInDegrees;
                 });
+
+                // Draw lines on top of the slices
                 if (state.showSubdivisionLines) {
+                    let lineAngle = 0;
                     const anglePerUnit = 360 / totalQuantity;
-                    for (let i = 1; i <= totalQuantity; i++) {
-                        const lineAngle = i * anglePerUnit;
+                    for (let i = 0; i < totalQuantity; i++) {
+                        lineAngle += anglePerUnit;
                         const lineRad = (Math.PI / 180) * lineAngle;
                         const x2 = cx + r * Math.cos(lineRad);
                         const y2 = cy + r * Math.sin(lineRad);
@@ -507,13 +525,15 @@
                         line.setAttribute('y1', String(cy));
                         line.setAttribute('x2', String(x2));
                         line.setAttribute('y2', String(y2));
-                        line.setAttribute('stroke', 'rgba(0,0,0,0.10)');
+                        line.setAttribute('stroke', 'rgba(0,0,0,0.2)');
                         line.setAttribute('stroke-width', '1');
                         wheelParts.appendChild(line);
                     }
                 }
             }
             svg.appendChild(wheelParts);
+            svg.appendChild(borderCircle); // Draw border on top of slices
+
             const playButtonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             playButtonGroup.setAttribute('id', config.selectors.playButton.slice(1));
             playButtonGroup.setAttribute('cursor', 'pointer');
@@ -610,6 +630,11 @@
             quantityInput.value = state.newItemQuantity;
         }
 
+        function renderControls() {
+            const checkbox = document.querySelector(config.selectors.showLinesCheckbox);
+            checkbox.checked = state.showSubdivisionLines;
+        }
+
         function renderSpinResult(currentItem) {
             const result = document.querySelector(config.selectors.result);
             result.innerHTML = `Girando... <strong>${currentItem ? currentItem.name : ''}</strong>`;
@@ -645,8 +670,6 @@
                 state.isSpinning = false;
                 renderResult();
                 renderWheel();
-                wheelParts.style.transform = `rotate(${finalRotation}deg)`;
-                wheelParts.style.animation = '';
                 animationStyle.innerHTML = '';
             }, { once: true });
         }
@@ -721,20 +744,26 @@
             if (savedItems) {
                 try {
                     const parsedItems = JSON.parse(savedItems);
-                    if (Array.isArray(parsedItems)) {
+                    if (Array.isArray(parsedItems) && parsedItems.length > 0) {
                         state.items = parsedItems;
                     }
                 } catch (e) {
                     console.error("Erro ao carregar itens da sessão:", e);
-                    state.items = [];
+                    state.items = config.defaultItems;
                 }
+            } else {
+                state.items = config.defaultItems;
             }
+
             document.querySelector(config.selectors.addItemForm).addEventListener('submit', handleAddItem);
             document.querySelector(config.selectors.itemsTableBody).addEventListener('click', handleTableClick);
             document.querySelector(config.selectors.speedSlider).addEventListener('input', (e) => updateSpeed(e.target.value));
             document.querySelector(config.selectors.showLinesCheckbox).addEventListener('change', (event) => {
                 state.showSubdivisionLines = event.target.checked;
-                renderWheel();
+                if (!state.isSpinning) {
+                    renderWheel();
+                }
+                renderControls();
             });
             document.querySelector(config.selectors.itemName).addEventListener('input', e => {
                 state.newItemName = e.target.value;
@@ -747,6 +776,7 @@
             renderTable();
             renderResult();
             renderForm();
+            renderControls();
             updateSpeed(document.querySelector(config.selectors.speedSlider).value);
         }
 
