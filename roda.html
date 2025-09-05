@@ -462,23 +462,15 @@
             wheelParts.setAttribute('id', config.selectors.wheelParts.slice(1));
             wheelParts.style.transform = `rotate(${state.currentRotation}deg)`;
 
-            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            borderCircle.setAttribute('cx', config.wheel.cx);
-            borderCircle.setAttribute('cy', config.wheel.cy);
-            borderCircle.setAttribute('r', config.wheel.borderCircle.r);
-            borderCircle.setAttribute('fill', 'none');
-            borderCircle.setAttribute('stroke', config.wheel.borderCircle.stroke);
-            borderCircle.setAttribute('stroke-width', config.wheel.borderCircle.strokeWidth);
-            
             const totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
             if (totalQuantity > 0) {
                 const { cx, cy, r } = config.wheel;
                 let currentAngle = 0;
+
+                // STAGE 1: Draw colored slices
                 state.items.forEach(item => {
                     const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
                     const startAngle = currentAngle;
-                    
-                    // Draw the colored slice path first
                     const endAngle = currentAngle + sliceSizeInDegrees;
                     const startRad = (Math.PI / 180) * startAngle;
                     const endRad = (Math.PI / 180) * endAngle;
@@ -492,26 +484,10 @@
                     path.setAttribute('d', pathData);
                     path.setAttribute('fill', item.color);
                     wheelParts.appendChild(path);
-
-                    // Draw the text for the slice
-                    const textAngle = startAngle + sliceSizeInDegrees / 2;
-                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', String(cx + r / 1.7)); 
-                    text.setAttribute('y', String(cy));
-                    text.setAttribute('text-anchor', 'middle');
-                    text.setAttribute('dominant-baseline', 'middle');
-                    text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
-                    text.setAttribute('fill', 'white');
-                    text.setAttribute('font-size', '16px');
-                    text.setAttribute('font-weight', 'bold');
-                    text.textContent = item.name;
-                    text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
-                    wheelParts.appendChild(text);
-
                     currentAngle += sliceSizeInDegrees;
                 });
 
-                // Draw lines on top of the slices
+                // STAGE 2: Draw lines
                 if (state.showSubdivisionLines) {
                     let lineAngle = 0;
                     const anglePerUnit = 360 / totalQuantity;
@@ -530,9 +506,38 @@
                         wheelParts.appendChild(line);
                     }
                 }
+
+                // STAGE 3: Draw text
+                currentAngle = 0;
+                state.items.forEach(item => {
+                    const sliceSizeInDegrees = (item.quantity / totalQuantity) * 360;
+                    const startAngle = currentAngle;
+                    const textAngle = startAngle + sliceSizeInDegrees / 2;
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', String(cx + r / 1.7)); 
+                    text.setAttribute('y', String(cy));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('transform', `rotate(${textAngle}, ${cx}, ${cy})`);
+                    text.setAttribute('fill', 'white');
+                    text.setAttribute('font-size', '16px');
+                    text.setAttribute('font-weight', 'bold');
+                    text.textContent = item.name;
+                    text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
+                    wheelParts.appendChild(text);
+                    currentAngle += sliceSizeInDegrees;
+                });
             }
             svg.appendChild(wheelParts);
-            svg.appendChild(borderCircle); // Draw border on top of slices
+
+            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            borderCircle.setAttribute('cx', config.wheel.cx);
+            borderCircle.setAttribute('cy', config.wheel.cy);
+            borderCircle.setAttribute('r', config.wheel.borderCircle.r);
+            borderCircle.setAttribute('fill', 'none');
+            borderCircle.setAttribute('stroke', config.wheel.borderCircle.stroke);
+            borderCircle.setAttribute('stroke-width', config.wheel.borderCircle.strokeWidth);
+            svg.appendChild(borderCircle);
 
             const playButtonGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             playButtonGroup.setAttribute('id', config.selectors.playButton.slice(1));
