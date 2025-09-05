@@ -288,6 +288,35 @@
             outline: none;
         }
 
+        /* --- Responsive Design --- */
+        @media (orientation: portrait) {
+            .wheel-container {
+                width: 90vw;
+                max-width: 90vw;
+            }
+            .item-manager {
+                width: 90vw;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                gap: 15px;
+            }
+            .title {
+                font-size: 24px;
+            }
+            .manager-title {
+                font-size: 20px;
+            }
+            .item-form {
+                flex-direction: column;
+            }
+        }
+
     </style>
     <style id="animation-style"></style>
 </head>
